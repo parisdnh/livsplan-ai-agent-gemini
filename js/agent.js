@@ -109,7 +109,7 @@ function saveApiKey() {
     setTimeout(() => { inp.classList.remove('error'); inp.placeholder = 'AIza…'; }, 3000);
     return;
   }
-  localStorage.setItem('lp_api_key', key);
+  localStorage.setItem('gemini_api_key', key);
   document.getElementById('api-key-section').style.display = 'none';
   document.getElementById('chat-container').style.display  = 'flex';
   startChat();
@@ -199,7 +199,7 @@ async function generatePlan() {
     genProgress.start();
   }, 600);
 
-  const apiKey = localStorage.getItem('lp_api_key') || '';
+  const apiKey = localStorage.getItem('gemini_api_key') || '';
   const today  = new Date().toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const prompt = `Du er en personlig livsplanlegger. Lag en komplett personlig livsplan basert på disse svarene:
@@ -302,7 +302,7 @@ function retryGenerate() {
 
 // ── Bytt API-nøkkel ───────────────────────────────────────────
 function changeApiKey() {
-  localStorage.removeItem('lp_api_key');
+  localStorage.removeItem('gemini_api_key');
   document.getElementById('chat-container').style.display  = 'none';
   document.getElementById('api-key-section').style.display = 'flex';
   document.getElementById('api-key-input').value = '';
@@ -324,7 +324,7 @@ function closePersistentChat() {
 }
 
 function initPersistentChat() {
-  const name = localStorage.getItem('lp_user_name') || 'deg';
+  const name = localStorage.getItem('gemini_user_name') || 'deg';
   addPersistentMsg(
     `Hei igjen, ${name}! 🌸 Planen din er klar — men jeg kan gjøre den enda mer personlig.\n\nFortell meg mer om hverdagen din, be meg justere mål, endre tidslinjen, tilpasse budsjettet, eller hva som helst annet.`,
     'ai'
@@ -370,9 +370,9 @@ async function sendPersistentMessage() {
   document.getElementById('persistent-updating').style.display = 'block';
   updProgress.start();
 
-  const apiKey  = localStorage.getItem('lp_api_key') || '';
-  const name    = localStorage.getItem('lp_user_name') || '';
-  const premie  = localStorage.getItem('lp_premie') || '';
+  const apiKey  = localStorage.getItem('gemini_api_key') || '';
+  const name    = localStorage.getItem('gemini_user_name') || '';
+  const premie  = localStorage.getItem('gemini_premie') || '';
   const dateStr = departureDate && !isNaN(departureDate.getTime())
     ? departureDate.toLocaleDateString('nb-NO', { month: 'long', year: 'numeric' })
     : 'ikke satt';
@@ -450,13 +450,13 @@ function applyPlanUpdate(update) {
 
   if (update.premie) {
     userPremie = update.premie;
-    localStorage.setItem('lp_premie', userPremie);
+    localStorage.setItem('gemini_premie', userPremie);
     updateDynamicText();
     changed = true;
   }
   if (update.avreisedato) {
     departureDate = new Date(update.avreisedato);
-    localStorage.setItem('lp_departure_date', update.avreisedato);
+    localStorage.setItem('gemini_departure_date', update.avreisedato);
     buildCountdown();
     updateDynamicText();
     changed = true;
@@ -474,11 +474,11 @@ function applyPlanUpdate(update) {
 
 // ── Init ─────────────────────────────────────────────────────
 (function initAgent() {
-  if (localStorage.getItem('lp_onboarding_done')) return;
+  if (localStorage.getItem('gemini_onboarding_done')) return;
 
   document.getElementById('onboarding').style.display = 'block';
 
-  const savedKey = localStorage.getItem('lp_api_key');
+  const savedKey = localStorage.getItem('gemini_api_key');
   if (savedKey) {
     document.getElementById('api-key-section').style.display = 'none';
     document.getElementById('chat-container').style.display  = 'flex';

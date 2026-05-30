@@ -3,23 +3,23 @@
    ============================================================ */
 
 // ── State ────────────────────────────────────────────────────
-let months  = JSON.parse(localStorage.getItem('lp_months'))  || JSON.parse(JSON.stringify(DEFAULT_MONTHS));
-let budget  = JSON.parse(localStorage.getItem('lp_budget'))  || JSON.parse(JSON.stringify(DEFAULT_BUDGET_SECTIONS));
-let goals   = JSON.parse(localStorage.getItem('lp_goals'))   || JSON.parse(JSON.stringify(DEFAULT_GOALS));
-let savings = JSON.parse(localStorage.getItem('lp_savings')) || { current: 0, log: [], goal: 0 };
+let months  = JSON.parse(localStorage.getItem('gemini_months'))  || JSON.parse(JSON.stringify(DEFAULT_MONTHS));
+let budget  = JSON.parse(localStorage.getItem('gemini_budget'))  || JSON.parse(JSON.stringify(DEFAULT_BUDGET_SECTIONS));
+let goals   = JSON.parse(localStorage.getItem('gemini_goals'))   || JSON.parse(JSON.stringify(DEFAULT_GOALS));
+let savings = JSON.parse(localStorage.getItem('gemini_savings')) || { current: 0, log: [], goal: 0 };
 
-let departureDate = localStorage.getItem('lp_departure_date')
-  ? new Date(localStorage.getItem('lp_departure_date'))
+let departureDate = localStorage.getItem('gemini_departure_date')
+  ? new Date(localStorage.getItem('gemini_departure_date'))
   : null;
-let userName   = localStorage.getItem('lp_user_name') || '';
-let userPremie = localStorage.getItem('lp_premie')    || '';
+let userName   = localStorage.getItem('gemini_user_name') || '';
+let userPremie = localStorage.getItem('gemini_premie')    || '';
 
 // ── Persist ──────────────────────────────────────────────────
 function persist() {
-  localStorage.setItem('lp_months',  JSON.stringify(months));
-  localStorage.setItem('lp_budget',  JSON.stringify(budget));
-  localStorage.setItem('lp_goals',   JSON.stringify(goals));
-  localStorage.setItem('lp_savings', JSON.stringify(savings));
+  localStorage.setItem('gemini_months',  JSON.stringify(months));
+  localStorage.setItem('gemini_budget',  JSON.stringify(budget));
+  localStorage.setItem('gemini_goals',   JSON.stringify(goals));
+  localStorage.setItem('gemini_savings', JSON.stringify(savings));
 }
 
 function saveAll() {
@@ -479,10 +479,10 @@ function loadFromAgentData(data) {
 
   if (data.avreisedato) {
     departureDate = new Date(data.avreisedato);
-    localStorage.setItem('lp_departure_date', data.avreisedato);
+    localStorage.setItem('gemini_departure_date', data.avreisedato);
   }
-  if (userName)   localStorage.setItem('lp_user_name', userName);
-  if (userPremie) localStorage.setItem('lp_premie', userPremie);
+  if (userName)   localStorage.setItem('gemini_user_name', userName);
+  if (userPremie) localStorage.setItem('gemini_premie', userPremie);
 
   months  = data.months         || [];
   budget  = data.budgetSections || [];
@@ -490,7 +490,7 @@ function loadFromAgentData(data) {
   savings = { current: 0, log: [], goal: data.sparemaal || 0 };
 
   persist();
-  localStorage.setItem('lp_onboarding_done', 'true');
+  localStorage.setItem('gemini_onboarding_done', 'true');
 
   updateDynamicText();
   buildCountdown();
@@ -517,8 +517,8 @@ function showApp() {
 
 function resetAll() {
   if (!confirm('Er du sikker? All fremgang slettes og du starter på nytt med AI-onboarding.')) return;
-  ['lp_months','lp_budget','lp_goals','lp_savings',
-   'lp_departure_date','lp_user_name','lp_premie','lp_onboarding_done']
+  ['gemini_months','gemini_budget','gemini_goals','gemini_savings',
+   'gemini_departure_date','gemini_user_name','gemini_premie','gemini_onboarding_done']
     .forEach(k => localStorage.removeItem(k));
   location.reload();
 }
@@ -531,7 +531,7 @@ buildBudget();
 buildGoals();
 setInterval(buildCountdown, 60000);
 
-if (localStorage.getItem('lp_onboarding_done')) {
+if (localStorage.getItem('gemini_onboarding_done')) {
   updateDynamicText();
   showApp();
 }
