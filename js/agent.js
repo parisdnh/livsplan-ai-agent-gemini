@@ -103,10 +103,10 @@ function saveApiKey() {
   const inp = document.getElementById('api-key-input');
   const key = (inp.value || '').trim();
 
-  if (!key || !key.startsWith('AIza')) {
+  if (!key || key.length < 10) {
     inp.classList.add('error');
-    inp.placeholder = 'Google AI-nøkler starter med AIza…';
-    setTimeout(() => { inp.classList.remove('error'); inp.placeholder = 'AIza…'; }, 3000);
+    inp.placeholder = 'Nøkkelen ser ut til å være for kort — prøv igjen';
+    setTimeout(() => { inp.classList.remove('error'); inp.placeholder = 'Lim inn nøkkelen her…'; }, 3000);
     return;
   }
   localStorage.setItem('gemini_api_key', key);
