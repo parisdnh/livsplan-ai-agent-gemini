@@ -32,15 +32,40 @@
     <!-- API-nøkkel -->
     <div class="api-key-section" id="api-key-section" style="display:none">
       <div class="api-key-card">
-        <div class="api-key-icon">🔑</div>
-        <h2>Koble til Gemini AI</h2>
-        <p>Skriv inn Google AI API-nøkkelen din for å starte. Den lagres kun lokalt i nettleseren — aldri på noen server.</p>
+        <div class="api-key-icon">✨</div>
+        <h2>Lag din personlige livsplan</h2>
+        <p class="api-key-intro">Appen bruker Google Gemini AI — <strong>helt gratis</strong> for deg. Du trenger en API-nøkkel som tar 30 sekunder å lage.</p>
+
+        <div class="api-steps">
+          <div class="api-step">
+            <div class="api-step-num">1</div>
+            <div class="api-step-text">
+              Gå til
+              <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" class="api-link">
+                aistudio.google.com/apikey
+              </a>
+            </div>
+          </div>
+          <div class="api-step">
+            <div class="api-step-num">2</div>
+            <div class="api-step-text">Logg inn med Google-kontoen din</div>
+          </div>
+          <div class="api-step">
+            <div class="api-step-num">3</div>
+            <div class="api-step-text">Klikk <strong>Create API key</strong> og kopier nøkkelen</div>
+          </div>
+          <div class="api-step">
+            <div class="api-step-num">4</div>
+            <div class="api-step-text">Lim den inn her og klikk Start 🌸</div>
+          </div>
+        </div>
+
         <div class="api-key-row">
-          <input type="password" id="api-key-input" placeholder="AIza…"
+          <input type="password" id="api-key-input" placeholder="Lim inn nøkkelen her (AIza…)"
                  onkeydown="if(event.key==='Enter')saveApiKey()" />
           <button onclick="saveApiKey()">Start 🌸</button>
         </div>
-        <p class="api-key-hint">Finn nøkkelen din på <strong>aistudio.google.com</strong> → Get API key</p>
+        <p class="api-key-hint">🔒 Nøkkelen lagres kun i din nettleser — aldri på noen server</p>
       </div>
     </div>
 

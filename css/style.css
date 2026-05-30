@@ -552,7 +552,32 @@ tbody td:not(:first-child) { text-align: right; }
   transition: all 0.2s;
 }
 .api-key-row button:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(232,97,154,0.40); }
-.api-key-hint { font-size: 12px; color: var(--text-muted); }
+.api-key-intro { margin-bottom: 18px !important; }
+.api-key-hint  { font-size: 12px; color: var(--text-muted); }
+.api-link {
+  color: var(--pink-deep); font-weight: 700; text-decoration: none;
+  border-bottom: 1.5px solid var(--rose);
+  transition: color 0.15s;
+}
+.api-link:hover { color: var(--pink); }
+
+/* ── API steg-guide ──────────────────────────────────────── */
+.api-steps {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 20px; text-align: left;
+}
+.api-step {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 14px;
+}
+.api-step-num {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--pink), var(--lilac));
+  color: #fff; font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.api-step-text { font-size: 13px; color: var(--text); line-height: 1.4; }
 
 /* ── Chat-container ──────────────────────────────────────── */
 .chat-container {
