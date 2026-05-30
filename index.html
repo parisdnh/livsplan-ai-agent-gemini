@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Min Livsplan ✨</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────── -->
+<header class="site-header">
+  <div class="container">
+    <div class="brand">
+      <h1>Min <em>Livsplan</em> 🌺</h1>
+      <p id="header-subtitle">Svar på 5 spørsmål og AI-en lager en personlig plan for deg!</p>
+    </div>
+    <div class="header-actions">
+      <button class="save-btn"  id="btn-save"  onclick="saveAll()"  style="display:none">💾 Lagre</button>
+      <button class="reset-btn" id="btn-reset" onclick="resetAll()" style="display:none">🔄 Start på nytt</button>
+      <span class="save-indicator" id="save-indicator">Lagret 💗</span>
+    </div>
+  </div>
+</header>
+
+<!-- ── Onboarding ─────────────────────────────────────────── -->
+<div id="onboarding" style="display:none">
+  <div class="container">
+
+    <!-- API-nøkkel -->
+    <div class="api-key-section" id="api-key-section" style="display:none">
+      <div class="api-key-card">
+        <div class="api-key-icon">🔑</div>
+        <h2>Koble til Claude AI</h2>
+        <p>Skriv inn Anthropic API-nøkkelen din for å starte. Den lagres kun lokalt i nettleseren — aldri på noen server.</p>
+        <div class="api-key-row">
+          <input type="password" id="api-key-input" placeholder="sk-ant-…"
+                 onkeydown="if(event.key==='Enter')saveApiKey()" />
+          <button onclick="saveApiKey()">Start 🌸</button>
+        </div>
+        <p class="api-key-hint">Finn nøkkelen din på <strong>console.anthropic.com</strong> → API Keys</p>
+      </div>
+    </div>
+
+    <!-- Chat -->
+    <div class="chat-container" id="chat-container" style="display:none">
+      <div class="chat-header">
+        <div class="chat-avatar">🤖</div>
+        <div class="chat-header-text">
+          <div class="chat-title">Livsplan AI</div>
+          <div class="chat-subtitle">Lager en plan personalisert til deg ✨</div>
+        </div>
+        <button class="chat-key-btn" onclick="changeApiKey()" title="Bytt API-nøkkel">🔑</button>
+      </div>
+      <div class="chat-messages" id="chat-messages"></div>
+      <div class="chat-input-row" id="chat-input-row">
+        <input type="text" id="chat-input" placeholder="Skriv svaret ditt her…"
+               onkeydown="if(event.key==='Enter')sendAnswer()" />
+        <button onclick="sendAnswer()">Send</button>
+      </div>
+      <div class="progress-section" id="chat-generating" style="display:none">
+        <div class="progress-label" id="gen-label">Analyserer svarene dine…</div>
+        <div class="progress-track">
+          <div class="progress-fill" id="gen-bar"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Hovedapp (skjult til onboarding er ferdig) ─────────── -->
+<div id="app-main" style="display:none">
+<div class="container">
+
+  <!-- ── Tabs ─────────────────────────────────────────────── -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('timeline',this)">📅 Tidslinje</button>
+    <button class="tab-btn"        onclick="showTab('budget',this)">💰 Budsjett</button>
+    <button class="tab-btn"        onclick="showTab('goals',this)">🏆 Premier</button>
+  </div>
+
+  <!-- ── Tidslinje ─────────────────────────────────────────── -->
+  <div id="panel-timeline" class="panel active">
+    <div id="timeline"></div>
+  </div>
+
+  <!-- ── Budsjett ──────────────────────────────────────────── -->
+  <div id="panel-budget" class="panel">
+    <div class="budget-metrics" id="budget-metrics"></div>
+    <div id="budget-sections"></div>
+  </div>
+
+  <!-- ── Premier ───────────────────────────────────────────── -->
+  <div id="panel-goals" class="panel">
+    <div class="goals-grid" id="goals-list"></div>
+    <div class="add-goal-row">
+      <input id="new-goal-title" placeholder="Ny premie… ✨" />
+      <input id="new-goal-desc"  placeholder="Kort beskrivelse" />
+      <button onclick="addGoal()">+ Legg til</button>
+    </div>
+  </div>
+
+  <!-- ── Countdown ─────────────────────────────────────────── -->
+  <div class="countdown-banner">
+    <div class="countdown-emoji" id="cd-emoji">🏆</div>
+    <div class="countdown-text">
+      <h2 id="cd-title">Premiedato</h2>
+      <p id="cd-subtitle">Hold fokus og nå premien din! 🌸</p>
+    </div>
+    <div class="countdown-chips">
+      <div class="countdown-chip">
+        <div class="num" id="cd-months">—</div>
+        <div class="lbl">måneder</div>
+      </div>
+      <div class="countdown-chip">
+        <div class="num" id="cd-weeks">—</div>
+        <div class="lbl">uker</div>
+      </div>
+      <div class="countdown-chip">
+        <div class="num" id="cd-days">—</div>
+        <div class="lbl">dager</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Sparemål ───────────────────────────────────────────── -->
+  <div class="savings-section">
+    <div class="savings-card">
+      <div class="savings-header">
+        <span style="font-size:24px">🌟</span>
+        <h2>Sparemål mot premien</h2>
+        <span class="pill" id="savings-pill">Mitt mål</span>
+      </div>
+
+      <div class="savings-goal-row">
+        <div class="savings-item pink">
+          <div class="savings-item-label">Spart hittil</div>
+          <div class="savings-item-val" id="savings-current">0 kr</div>
+          <div class="savings-item-sub">av målet ditt</div>
+        </div>
+        <div class="savings-item lilac">
+          <div class="savings-item-label">Sparemål</div>
+          <div class="savings-item-val" id="savings-goal-val">— kr</div>
+          <div class="savings-item-sub">Satt av AI-agenten</div>
+        </div>
+        <div class="savings-item mint">
+          <div class="savings-item-label">Fremgang</div>
+          <div class="savings-item-val" id="savings-pct">0%</div>
+          <div class="savings-item-sub" id="savings-left">— kr igjen</div>
+        </div>
+      </div>
+
+      <div class="savings-bar-wrap">
+        <div class="savings-bar-labels">
+          <span>0 kr</span>
+          <span id="savings-goal-label">— kr</span>
+        </div>
+        <div class="savings-bar-track">
+          <div class="savings-bar-fill" id="savings-bar-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="milestones" id="milestones"></div>
+
+      <div class="savings-input-row">
+        <label>Legg til sparing:</label>
+        <input id="savings-add-input" type="number" placeholder="f.eks. 2500"
+               onkeydown="if(event.key==='Enter')addSavings()" />
+        <button onclick="addSavings()">+ Legg til</button>
+        <label style="margin-left:12px">Endre mål:</label>
+        <input id="savings-goal-edit" type="number" placeholder="f.eks. 30000"
+               onkeydown="if(event.key==='Enter')setSavingsGoalEdit()" />
+        <button onclick="setSavingsGoalEdit()">Oppdater</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+  <!-- ── Flytende AI-chat-knapp ──────────────────────────────── -->
+  <button class="agent-fab" id="agent-fab" onclick="togglePersistentChat()">
+    ✨ Tilpass plan
+  </button>
+
+  <!-- ── Persistent AI-chat-panel ────────────────────────────── -->
+  <div class="persistent-panel" id="persistent-panel">
+    <div class="persistent-header">
+      <div style="display:flex; align-items:center; gap:10px">
+        <div class="chat-avatar" style="width:34px;height:34px;font-size:17px">🤖</div>
+        <div>
+          <div class="chat-title">Tilpass planen</div>
+          <div class="chat-subtitle">Be AI-en endre og forbedre</div>
+        </div>
+      </div>
+      <button class="persistent-close" onclick="closePersistentChat()">✕</button>
+    </div>
+    <div class="persistent-messages" id="persistent-messages"></div>
+    <div class="progress-section" id="persistent-updating" style="display:none">
+      <div class="progress-label" id="upd-label">Tolker forespørselen…</div>
+      <div class="progress-track">
+        <div class="progress-fill" id="upd-bar"></div>
+      </div>
+    </div>
+    <div class="chat-input-row" id="persistent-input-row">
+      <input type="text" id="persistent-input"
+             placeholder="Fortell mer eller be om endringer…"
+             onkeydown="if(event.key==='Enter')sendPersistentMessage()" />
+      <button onclick="sendPersistentMessage()">Send</button>
+    </div>
+  </div>
+
+</div><!-- /app-main -->
+
+<div class="toast" id="toast"></div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script src="js/agent.js"></script>
+</body>
+</html>
