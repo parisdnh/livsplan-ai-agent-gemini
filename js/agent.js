@@ -1,6 +1,8 @@
 /* ============================================================
-   agent.js — AI onboarding agent
+   agent.js — AI onboarding agent (Google Gemini API)
    ============================================================ */
+
+const GEMINI_MODEL = 'gemini-2.0-flash';
 
 // ── Progress-kontroller ───────────────────────────────────────
 function createProgress(barId, labelId, stages) {
@@ -9,7 +11,7 @@ function createProgress(barId, labelId, stages) {
   let stage = 0;
 
   function draw(pct, lbl) {
-    const bar = document.getElementById(barId);
+    const bar  = document.getElementById(barId);
     const lbl2 = document.getElementById(labelId);
     if (bar)  bar.style.width  = Math.min(100, pct) + '%';
     if (lbl2 && lbl) lbl2.textContent = lbl;
@@ -60,17 +62,51 @@ const agentAnswers  = {};
 let currentQuestion = 0;
 let waitingForInput = false;
 
+// ── Gemini API-hjelper ────────────────────────────────────────
+async function geminiCall(apiKey, { systemPrompt, contents, maxTokens = 8000 }) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+
+  const body = {
+    contents,
+    generationConfig: { maxOutputTokens: maxTokens },
+  };
+  if (systemPrompt) {
+    body.system_instruction = { parts: [{ text: systemPrompt }] };
+  }
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const msg = err.error?.message || `API-feil (${res.status})`;
+    throw new Error(msg);
+  }
+
+  const result = await res.json();
+  return result.candidates[0].content.parts[0].text;
+}
+
+function parseJSON(raw) {
+  const stripped = raw.replace(/^```(?:json)?\s*/im, '').replace(/```\s*$/m, '').trim();
+  const start = stripped.indexOf('{');
+  const end   = stripped.lastIndexOf('}');
+  if (start === -1 || end === -1) throw new Error('Ingen JSON funnet i svaret');
+  return JSON.parse(stripped.slice(start, end + 1));
+}
+
 // ── API-nøkkel ────────────────────────────────────────────────
 function saveApiKey() {
   const inp = document.getElementById('api-key-input');
   const key = (inp.value || '').trim();
 
-  if (!key || !key.startsWith('sk-ant-')) {
+  if (!key || !key.startsWith('AIza')) {
     inp.classList.add('error');
-    inp.placeholder = key.startsWith('sk-') && !key.startsWith('sk-ant-')
-      ? 'Dette ser ut som en OpenAI-nøkkel — Anthropic-nøkler starter med sk-ant-'
-      : 'Nøkkelen må starte med sk-ant-…';
-    setTimeout(() => { inp.classList.remove('error'); inp.placeholder = 'sk-ant-…'; }, 3000);
+    inp.placeholder = 'Google AI-nøkler starter med AIza…';
+    setTimeout(() => { inp.classList.remove('error'); inp.placeholder = 'AIza…'; }, 3000);
     return;
   }
   localStorage.setItem('lp_api_key', key);
@@ -127,10 +163,7 @@ function startChat() {
 }
 
 function askNext() {
-  if (currentQuestion >= QUESTIONS.length) {
-    generatePlan();
-    return;
-  }
+  if (currentQuestion >= QUESTIONS.length) { generatePlan(); return; }
   showTyping();
   setTimeout(() => {
     removeTyping();
@@ -151,7 +184,6 @@ function sendAnswer() {
   waitingForInput = false;
   inp.value = '';
   setChatLocked(true);
-
   addMessage(answer, 'user');
   agentAnswers[QUESTIONS[currentQuestion].key] = answer;
   currentQuestion++;
@@ -161,7 +193,6 @@ function sendAnswer() {
 // ── Generer plan ──────────────────────────────────────────────
 async function generatePlan() {
   document.getElementById('chat-input-row').style.display = 'none';
-
   addMessage('Perfekt! Nå lager jeg din personlige livsplan basert på svarene dine ✨', 'ai');
   setTimeout(() => {
     document.getElementById('chat-generating').style.display = 'block';
@@ -198,25 +229,21 @@ Returner KUN et JSON-objekt med denne nøyaktige strukturen — ingen tekst rund
       "jobb": "...",
       "status": "Planlegging",
       "notes": "",
-      "context": "En motiverende, personlig beskrivelse av denne måneden og hva som er viktig nå for å nå premien.",
-      "todos": [
-        {"text": "Konkret, spesifikk og handlingsorientert oppgave", "done": false}
-      ]
+      "context": "En motiverende, personlig beskrivelse av denne måneden.",
+      "todos": [{"text": "Konkret oppgave", "done": false}]
     }
   ],
   "budgetSections": [
     {
       "title": "💰 Sparefase",
-      "rows": [
-        {"cat": "Månedlig sparing mot premien", "budget": 3000, "spent": 0}
-      ]
+      "rows": [{"cat": "Månedlig sparing mot premien", "budget": 3000, "spent": 0}]
     }
   ],
   "goals": [
     {
       "icon": "🎯",
       "title": "Tittel på delmål mot premien",
-      "desc": "Beskrivelse med konkrete, praktiske tips og steg for å nå dette delmålet.",
+      "desc": "Beskrivelse med konkrete tips og steg.",
       "pct": 0
     }
   ]
@@ -224,54 +251,22 @@ Returner KUN et JSON-objekt med denne nøyaktige strukturen — ingen tekst rund
 
 Regler:
 - Lag månedskort fra neste måned og frem til premiedatoen (maks 8 måneder)
-- Hvert månedskort skal ha 4–5 konkrete, spesifikke todos som er relevante for akkurat denne premien
-- Todos skal ikke være generiske — de skal passe til nettopp det denne personen jobber mot
+- Hvert månedskort skal ha 4–5 konkrete, spesifikke todos relevante for denne premien
 - Budsjett skal reflektere hva det faktisk koster å nå premien
 - sparemaal = estimert totalbeløp brukeren trenger
 - Lag 5–7 personlige premier/delmål
 - Bruk ordet "premie" konsekvent — ikke "drøm" eller "mål"
-- Månedsfarge-logikk: tidlig fase="#5CAD8A", midtfase="#C9A8E0", sluttfase="#F4A97A", premiedato="#E8619A"
+- Månedsfarge-logikk: tidlig="#5CAD8A", midtfase="#C9A8E0", sluttfase="#F4A97A", premiedato="#E8619A"
 - phase-verdier: "saving", "planning", "final", "goal"
 - Alt innhold skal være på norsk
 - Returner KUN JSON — ingen annen tekst`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 8000,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    const raw  = await geminiCall(apiKey, {
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      maxTokens: 8000,
     });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || `API-feil (${res.status})`);
-    }
-
-    const result = await res.json();
-    const raw    = result.content[0].text;
-
-    let data;
-    try {
-      // Strip markdown code fences if present
-      const stripped = raw.replace(/^```(?:json)?\s*/im, '').replace(/```\s*$/m, '').trim();
-      // Find outermost JSON object
-      const start = stripped.indexOf('{');
-      const end   = stripped.lastIndexOf('}');
-      if (start === -1 || end === -1) throw new Error('no braces');
-      data = JSON.parse(stripped.slice(start, end + 1));
-    } catch {
-      const preview = raw.slice(-200);
-      throw new Error(`JSON-parsing feilet. Svaret ble trolig avkuttet. Siste del: "${preview}"`);
-    }
+    const data = parseJSON(raw);
 
     genProgress.finish(() => {
       document.getElementById('chat-generating').style.display = 'none';
@@ -282,16 +277,15 @@ Regler:
     genProgress.finish(() => {});
     document.getElementById('chat-generating').style.display = 'none';
 
-    const keyPreview = apiKey ? apiKey.slice(0, 14) + '…' : '(ingen nøkkel)';
-    const isKeyError = err.message.toLowerCase().includes('api-key') ||
-                       err.message.toLowerCase().includes('api_key') ||
-                       err.message.toLowerCase().includes('unauthorized') ||
-                       err.message.includes('401');
+    const keyPreview = apiKey ? apiKey.slice(0, 12) + '…' : '(ingen nøkkel)';
+    const isKeyError = err.message.includes('API_KEY') ||
+                       err.message.toLowerCase().includes('api key') ||
+                       err.message.includes('403') || err.message.includes('401');
 
     const msg = isKeyError
-      ? `API-nøkkelen ble avvist av Anthropic.\n\nNøkkel som ble brukt: <code>${keyPreview}</code>\n\nSjekk at du kopierte hele nøkkelen fra console.anthropic.com → API Keys.\n\n` +
+      ? `API-nøkkelen ble avvist av Google.\n\nNøkkel som ble brukt: <code>${keyPreview}</code>\n\nSjekk nøkkelen på <strong>aistudio.google.com</strong> → Get API key.\n\n` +
         `<button onclick="changeApiKey()" class="retry-btn">🔑 Bytt nøkkel</button>`
-      : `Noe gikk galt: <strong>${err.message}</strong>\n\nSjekk internettilkoblingen og prøv igjen.\n\n` +
+      : `Noe gikk galt: <strong>${err.message}</strong>\n\n` +
         `<button onclick="retryGenerate()" class="retry-btn">🔄 Prøv igjen</button> ` +
         `<button onclick="changeApiKey()" class="retry-btn">🔑 Bytt nøkkel</button>`;
 
@@ -319,12 +313,10 @@ let persistentHistory = [];
 let persistentTypingEl = null;
 
 function togglePersistentChat() {
-  const panel = document.getElementById('persistent-panel');
+  const panel   = document.getElementById('persistent-panel');
   const opening = !panel.classList.contains('open');
   panel.classList.toggle('open');
-  if (opening && persistentHistory.length === 0) {
-    initPersistentChat();
-  }
+  if (opening && persistentHistory.length === 0) initPersistentChat();
 }
 
 function closePersistentChat() {
@@ -369,9 +361,9 @@ async function sendPersistentMessage() {
   inp.value = '';
   inp.disabled = true;
   addPersistentMsg(msg, 'user');
-  persistentHistory.push({ role: 'user', content: msg });
 
-  // Behold maks 20 meldinger i historikk
+  // Gemini bruker role: 'user' / 'model'
+  persistentHistory.push({ role: 'user', parts: [{ text: msg }] });
   if (persistentHistory.length > 20) persistentHistory = persistentHistory.slice(-20);
 
   showPersistentTyping();
@@ -392,13 +384,6 @@ Nåværende plan:
 - Måneder i tidslinjen: ${months.length}
 - Premier/delmål: ${goals.map(g => g.title).join(' | ')}
 
-Brukeren kan be deg om å:
-- Endre eller legge til premier/delmål
-- Justere tidslinjen (måneder og todos)
-- Endre budsjettet
-- Gjøre planen mer personlig og detaljert
-- Gi råd og motivasjon
-
 Svar ALLTID med et gyldig JSON-objekt:
 {
   "message": "Svarmeldingen din på norsk her",
@@ -412,34 +397,18 @@ Svar ALLTID med et gyldig JSON-objekt:
   }
 }
 
-Inkluder kun feltene i "update" som faktisk endres. Utelat "update" helt hvis ingenting i planen endres.
-Bruk "premie" konsekvent — aldri "drøm" eller "mål". Svar på norsk. Vær konkret og motiverende.`;
+Inkluder kun feltene i "update" som faktisk endres. Utelat "update" helt hvis ingenting endres.
+Bruk "premie" konsekvent. Svar på norsk. Vær konkret og motiverende.`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 4000,
-        system: systemPrompt,
-        messages: persistentHistory,
-      }),
+    const raw = await geminiCall(apiKey, {
+      systemPrompt,
+      contents: persistentHistory,
+      maxTokens: 4000,
     });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || `API-feil (${res.status})`);
-    }
-
-    const result = await res.json();
-    const raw    = result.content[0].text;
-    persistentHistory.push({ role: 'assistant', content: raw });
+    // Legg til modellsvaret i historikk (Gemini-format)
+    persistentHistory.push({ role: 'model', parts: [{ text: raw }] });
 
     removePersistentTyping();
     updProgress.finish(() => {
@@ -447,18 +416,14 @@ Bruk "premie" konsekvent — aldri "drøm" eller "mål". Svar på norsk. Vær ko
     });
 
     let parsed;
-    try {
-      const start = raw.indexOf('{');
-      const end   = raw.lastIndexOf('}');
-      parsed = JSON.parse(raw.slice(start, end + 1));
-    } catch {
+    try { parsed = parseJSON(raw); }
+    catch {
       addPersistentMsg(raw, 'ai');
       inp.disabled = false; inp.focus();
       return;
     }
 
     addPersistentMsg(parsed.message || raw, 'ai');
-
     if (parsed.update && Object.keys(parsed.update).length > 0) {
       applyPlanUpdate(parsed.update);
     }
@@ -503,7 +468,6 @@ function applyPlanUpdate(update) {
     buildBudget();
     buildGoals();
     buildSavings();
-
     showToast('Plan oppdatert! ✨');
   }
 }
